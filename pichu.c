@@ -13,19 +13,46 @@ typedef enum{
     INST_PRINT, 
 } instructionSet;
 
+
 typedef struct{
     instructionSet type;
     int operand;
 } instruction;
 
+//macros
+#define M_INST_PUSH(x) {.type = INST_PUSH, .operand = x}//only one that needs value!
+#define M_INST_POP() {.type = INST_POP}
+#define M_INST_ADD() {.type = INST_ADD}
+#define M_INST_SUB() {.type = INST_SUB}
+#define M_INST_MUL() {.type = INST_MUL}
+#define M_INST_DIV() {.type = INST_DIV}
+#define M_INST_PRINT() {.type = INST_PRINT}
+
+//running the instructions
 #define PROGRAM_SIZE (sizeof(program)/sizeof(program[0]))
 instruction program[] = {
-    {.type = INST_PUSH, .operand = 1},
-    {.type = INST_PUSH, .operand = 2},
-    {.type = INST_PUSH, .operand = 3},
-    {.type = INST_PUSH, .operand = 4},
-    //{.type = INST_DIV},
-    //{.type = INST_PRINT},
+    M_INST_PUSH(1),
+    M_INST_PUSH(2),
+    M_INST_ADD(),
+    M_INST_PUSH(3),
+    M_INST_PUSH(4),
+    M_INST_SUB(),
+    M_INST_PUSH(5),
+    M_INST_PUSH(6),
+    M_INST_MUL(),
+    M_INST_PUSH(100),
+    M_INST_PUSH(5),
+    M_INST_DIV(),
+    M_INST_PUSH(9),
+    M_INST_PUSH(10),
+    M_INST_ADD(),
+    M_INST_PUSH(11),
+    M_INST_PUSH(12),
+    M_INST_ADD(),
+    M_INST_PUSH(13),
+    M_INST_PUSH(14),
+    M_INST_ADD(),
+    M_INST_PUSH(15),
 };
 
 #define MAX_STACK_SIZE 1024
@@ -83,7 +110,7 @@ int main(){
             case INST_PRINT:
                 printf("%d\n", pop());
                 break;
-            default:
+            default://unexpected state
                 assert(0);
                 break;
         }
