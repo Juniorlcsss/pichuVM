@@ -6,21 +6,34 @@
 //Constants
 #define MAX_STACK_SIZE 1024
 typedef enum{
-    INST_PUSH,  //push onto stack  
-    INST_POP,   //pop off stack
-    INST_ADD,   //add first 2 popped values from stack
-    INST_SUB,   //subtract first 2 popped values from stack
-    INST_MUL,   //multiply first 2 popped values from stack
-    INST_DIV,   //divide first 2 popped values from stack
-    INST_PRINT, //print popped value
-    INST_DUP,   //pops top, and then pushes back into stack twice
-    INST_SWAP,  //swaps front 2 values around
+    //https://en.wikipedia.org/wiki/List_of_Java_bytecode_instructions
+
+    //COMPLETED INSTRUCTIONS:
+    INST_PUSH,      //push onto stack  
+    INST_POP,       //pop off stack
+    INST_ADD,       //add first 2 popped values from stack
+    INST_SUB,       //subtract first 2 popped values from stack
+    INST_MUL,       //multiply first 2 popped values from stack
+    INST_DIV,       //divide first 2 popped values from stack
+    INST_PRINT,     //print popped value
+    INST_DUP,       //pops top, and then pushes back into stack twice
+    INST_SWAP,      //swaps front 2 values around
+    INST_COMPE,     //Compares, if they are equal, pop both and push in 1, else, push 0
+    INST_COMPNE,    //Inverse of COMPE
+    INST_COMPG,     //Compares if first value is greater than second value
+    INST_COMPGE,    //compares if first value is greater than or equal to the second value
+    INST_COMPL,     //compares if first value is less than second value
+    INST_COMPLE,    //compares if first value is less than or equal to the second value
+    INST_GOTO,      //Goes to the nearest selected value
+    INST_NOP,       //No operation
+    INST_POP2,      //pops the top two values on the stack, //!Note, pop2 does also return a underflow error if there aren't enough values on the stack
+    INST_NEG,       //Negates operand
 } InstructionSet;
 
 
 typedef struct{
-    InstructionSet operator; //e.g. push
-    int operand;         //e.g. 5
+    InstructionSet operator;    //e.g. push
+    int operand;                //e.g. 2
 } Instruction;
 
 
@@ -31,8 +44,8 @@ typedef struct{
     Instruction *instructions;
 } Machine;
 
-//macros
-#define M_INST_PUSH(x) {.operator = INST_PUSH, .operand = x}//only one that needs value!
+//List of Macros: ------------------------------------------------
+#define M_INST_PUSH(x) {.operator = INST_PUSH, .operand = x}
 #define M_INST_POP() {.operator = INST_POP}
 #define M_INST_ADD() {.operator = INST_ADD}
 #define M_INST_SUB() {.operator = INST_SUB}
@@ -41,13 +54,24 @@ typedef struct{
 #define M_INST_PRINT() {.operator = INST_PRINT}
 #define M_INST_DUP() {.operator = INST_DUP}
 #define M_INST_SWAP() {.operator = INST_SWAP}
+#define M_INST_COMPE() {.operator = INST_COMPE}
+#define M_INST_COMPNE() {.operator = INST_COMPNE}
+#define M_INST_COMPG() {.operator = INST_COMPG}
+#define M_INST_COMPGE() {.operator = INST_COMPGE}
+#define M_INST_COMPL() {.operator = INST_COMPL}
+#define M_INST_COMPLE() {.operator = INST_COMPLE}
+#define M_INST_GOTO(x) {.operator = INST_GOTO, .operand = x}
+#define M_INST_NOP() {.operator = INST_NOP}
+#define M_INST_POP2() {.operator = INST_POP2}
+#define M_INST_NEG() {.operator = INST_NEG}
+//----------------------------------------------------------------
 
 //running the program
 Instruction program[] = {
     M_INST_PUSH(5),
     M_INST_PUSH(10),
-    M_INST_SWAP(),
-    M_INST_SUB(),
+    M_INST_GOTO(15),
+
 };
 #define PROGRAM_SIZE (sizeof(program)/sizeof(program[0]))
 
@@ -59,7 +83,7 @@ void push(Machine *machine, int operand){   //push value
     machine->stack[machine->currentStackSize] = operand;
     machine->currentStackSize++;
 }
-int pop(Machine *machine){             //pop the top
+int pop(Machine *machine){                  //pop the top
     if(machine->currentStackSize <= 0) {
         fprintf(stderr, "stack underflow\n");
         exit(EXIT_FAILURE);
@@ -68,7 +92,7 @@ int pop(Machine *machine){             //pop the top
     return machine->stack[machine->currentStackSize];
 }
 
-void printStack(Machine *machine){
+void printStack(Machine *machine){          //prints operands on the stack
     printf("stack:\n");
     for(int i = machine->currentStackSize - 1; i>=0; i--){
         printf("%d\n", machine->stack[i]);
@@ -127,26 +151,37 @@ int main(){
     writeProgramToFile(loadedMachine, "program.bin");
     loadedMachine = readFromFile(loadedMachine, "program.bin");
 
-    //run program
+    //run program & instructions--------------------------------------------------------
     for(size_t i=0; i < loadedMachine->programSize; i++) {
         switch((loadedMachine->instructions)[i].operator){
+            //PUSH
             case INST_PUSH:
                 push(loadedMachine, loadedMachine->instructions[i].operand);
                 break;
+
+            //POP
             case INST_POP:
                 pop(loadedMachine);
                 break;
+
+            //ADD
             case INST_ADD:
                 push(loadedMachine, pop(loadedMachine) + pop(loadedMachine));
                 break;
+
+            //SUBTRACT
             case INST_SUB:
                 first = pop(loadedMachine);
                 second = pop(loadedMachine);
                 push(loadedMachine, first - second);
                 break;
+
+            //MULTIPLY
             case INST_MUL:
                 push(loadedMachine ,pop(loadedMachine) * pop(loadedMachine));
                 break;
+
+            //DIVIDE
             case INST_DIV:
                 first = pop(loadedMachine);
                 second = pop(loadedMachine);
@@ -156,25 +191,145 @@ int main(){
                 }
                 push(loadedMachine ,first / second);
                 break;
+
+            //PRINT
             case INST_PRINT:
                 printf("%d\n", pop(loadedMachine));
                 break;
+
+            //DUPLICATE
             case INST_DUP:
                 first = pop(loadedMachine);
                 push(loadedMachine ,first);
                 push(loadedMachine ,first);
                 break;
+
+            //SWAP
             case INST_SWAP:
                 first = pop(loadedMachine);
                 second = pop(loadedMachine);
                 push(loadedMachine, first);
                 push(loadedMachine, second);
                 break;
+
+            //COMPARE EQUAL
+            case INST_COMPE:
+                first = pop(loadedMachine);
+                second = pop(loadedMachine);
+                if(first == second){
+                    push(loadedMachine, 1);
+                }
+                else{
+                    push(loadedMachine, 0);
+                }
+                break;
+
+            //COMPARE NOT EQUAL
+            case INST_COMPNE:
+                first = pop(loadedMachine);
+                second = pop(loadedMachine);
+                if(first == second){
+                    push(loadedMachine, 0);
+                }
+                else{
+                    push(loadedMachine, 1);
+                }
+                break;  
+
+            //COMPARE GREATER THAN
+            case INST_COMPG:
+                first = pop(loadedMachine);
+                second = pop(loadedMachine);
+                if(first > second){
+                    push(loadedMachine, 1);
+                }
+                else{
+                    push(loadedMachine, 0);
+                }
+                break;  
+
+            //COMPARE GREATER THAN OR EQUAL TO
+            case INST_COMPGE:
+                first = pop(loadedMachine);
+                second = pop(loadedMachine);
+                if(first >= second){
+                    push(loadedMachine, 1);
+                }
+                else{
+                    push(loadedMachine, 0);
+                }
+                break;
+
+            //COMPARE LESS THAN
+            case INST_COMPL: 
+                first = pop(loadedMachine);
+                second = pop(loadedMachine);
+                if(first < second){
+                    push(loadedMachine, 1);
+                }
+                else{
+                    push(loadedMachine, 0);
+                }
+                break;
+
+            //COMPARE LESS THAN OR EQUAL TO
+            case INST_COMPLE:  
+                first = pop(loadedMachine);
+                second = pop(loadedMachine);
+                if(first <= second){
+                    push(loadedMachine, 1);
+                }
+                else{
+                    push(loadedMachine, 0);
+                }
+                break; 
+
+            //GOTO
+            case INST_GOTO:
+                first = loadedMachine->instructions[i].operand;
+                second = pop(loadedMachine);
+                for(int gotoIndex = 0; gotoIndex < loadedMachine->currentStackSize;){
+                    if(first != second){
+                        //printf("First != second loop\n");
+                        second = pop(loadedMachine);
+                    }
+                    if(first == second){
+                        //printf("First == second loop\n");
+                        push(loadedMachine, second);
+                        break;
+                    }
+                    else{
+                        fprintf(stderr,"out of bounds\n");
+                        exit(EXIT_FAILURE);
+                    }
+                }
+                break;
+            
+            //NO OPERATION
+            case INST_NOP:
+                //null
+                break;
+
+            //POP2
+            case INST_POP2:
+                pop(loadedMachine);
+                pop(loadedMachine);
+                break;
+
+            //NEGATE
+            case INST_NEG:
+                first = pop(loadedMachine);
+                push(loadedMachine, -first);
+                break;
+
+            //DEFAULT
             default://unexpected state
                 assert(0);
                 break;
         }
     }
+    //END-OF-SWITCH-AND-FOR-LOOP--------------------------------------------------------
+
     printStack(loadedMachine);
     return 0;
 }
