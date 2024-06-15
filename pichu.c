@@ -6,42 +6,48 @@
 //Constants
 #define MAX_STACK_SIZE 1024
 typedef enum{
-    INST_PUSH,  
-    INST_POP,   
-    INST_ADD,   
-    INST_SUB,   
-    INST_MUL,   
-    INST_DIV,   
-    INST_PRINT, 
-} instructionSet;
+    INST_PUSH,  //push onto stack  
+    INST_POP,   //pop off stack
+    INST_ADD,   //add first 2 popped values from stack
+    INST_SUB,   //subtract first 2 popped values from stack
+    INST_MUL,   //multiply first 2 popped values from stack
+    INST_DIV,   //divide first 2 popped values from stack
+    INST_PRINT, //print popped value
+    INST_DUP,   //pops top, and then pushes back into stack twice
+    INST_SWAP,  //swaps front 2 values around
+} InstructionSet;
+
 
 typedef struct{
-    instructionSet type;
-    int operand;
-} instruction;
+    InstructionSet operator; //e.g. push
+    int operand;         //e.g. 5
+} Instruction;
+
 
 typedef struct{
-    //where stack is stored
     int stack[MAX_STACK_SIZE];
     int currentStackSize;
     size_t programSize;
-    //instruction program;
-    instruction *instructions[];
+    Instruction *instructions;
 } Machine;
 
 //macros
-#define M_INST_PUSH(x) {.type = INST_PUSH, .operand = x}//only one that needs value!
-#define M_INST_POP() {.type = INST_POP}
-#define M_INST_ADD() {.type = INST_ADD}
-#define M_INST_SUB() {.type = INST_SUB}
-#define M_INST_MUL() {.type = INST_MUL}
-#define M_INST_DIV() {.type = INST_DIV}
-#define M_INST_PRINT() {.type = INST_PRINT}
+#define M_INST_PUSH(x) {.operator = INST_PUSH, .operand = x}//only one that needs value!
+#define M_INST_POP() {.operator = INST_POP}
+#define M_INST_ADD() {.operator = INST_ADD}
+#define M_INST_SUB() {.operator = INST_SUB}
+#define M_INST_MUL() {.operator = INST_MUL}
+#define M_INST_DIV() {.operator = INST_DIV}
+#define M_INST_PRINT() {.operator = INST_PRINT}
+#define M_INST_DUP() {.operator = INST_DUP}
+#define M_INST_SWAP() {.operator = INST_SWAP}
 
-instruction program[] = {
-    M_INST_PUSH(6),
-    M_INST_PUSH(7),
-    M_INST_ADD(),
+//running the program
+Instruction program[] = {
+    M_INST_PUSH(5),
+    M_INST_PUSH(10),
+    M_INST_SWAP(),
+    M_INST_SUB(),
 };
 #define PROGRAM_SIZE (sizeof(program)/sizeof(program[0]))
 
@@ -76,55 +82,56 @@ void writeProgramToFile(Machine *machine, char *filename){
         fprintf(stderr, "could not open file %s\n", filename);
         exit(EXIT_FAILURE);
     }
-    else{
-        fwrite(machine->instructions, sizeof(machine->instructions[0]), PROGRAM_SIZE, f);
-        printf("program written to file %s\n", filename);
-    }
+
+    fwrite(machine->instructions, sizeof(machine->instructions[0]), PROGRAM_SIZE, f);
+    printf("program written to file %s\n", filename);
+
     fclose(f);
 }
 
 Machine *readFromFile(Machine *machine, char *filename){
     FILE *f = fopen(filename,"r");
+
     if(f == NULL){
         fprintf(stderr, "could not open file %s\n", filename);
         exit(EXIT_FAILURE);
     }
-    else{
-        instruction *instructions = malloc(sizeof(instruction) * MAX_STACK_SIZE);
-        if (instructions == NULL) {
-            fprintf(stderr, "memory allocation failed\n");
-            exit(EXIT_FAILURE);
-        }
-
-        Machine *machine = malloc(sizeof(Machine));
-        if (machine == NULL) {
-            fprintf(stderr, "memory allocation failed\n");
-            exit(EXIT_FAILURE);
-        }
-
-        fseek(f, 0, SEEK_END);
-        int length = ftell(f);
-        fread(instructions, sizeof(instruction), length/sizeof(instruction), f);
-        printf("program read from file %s\n", filename);
-
-        machine->programSize = length/sizeof(instruction);
-        return machine;
+    Instruction *instructions = malloc(sizeof(Instruction) * MAX_STACK_SIZE);
+    if (instructions == NULL) {
+        fprintf(stderr, "memory allocation failed\n");
+        exit(EXIT_FAILURE);
     }
+    else if (machine == NULL) {
+        fprintf(stderr, "memory allocation failed\n");
+        exit(EXIT_FAILURE);
+    }
+    
+    fseek(f, 0, SEEK_END);
+    int length = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    fread(instructions, sizeof(instructions[0]), length/8, f);
+    printf("program read from file %s\n", filename);
+
+    machine->programSize = length/8;
+    machine->instructions = instructions;
+        
     fclose(f);
+    return machine;
 }
 
 int main(){
-    int first;
-    int second;
-    Machine *loadedMachine = malloc(sizeof(Machine));
-    *loadedMachine->instructions = malloc(sizeof(program));
-    memcpy(loadedMachine->instructions, program, sizeof(program));
+    int first, second; //first and second operands, used for division and subtraction
+
+    Machine *loadedMachine = malloc(sizeof(Machine) * MAX_STACK_SIZE);
+    loadedMachine->instructions = program;
     writeProgramToFile(loadedMachine, "program.bin");
     loadedMachine = readFromFile(loadedMachine, "program.bin");
+
+    //run program
     for(size_t i=0; i < loadedMachine->programSize; i++) {
-        switch((*loadedMachine->instructions)[i].type){
+        switch((loadedMachine->instructions)[i].operator){
             case INST_PUSH:
-                push(loadedMachine, (*loadedMachine->instructions)[i].operand);
+                push(loadedMachine, loadedMachine->instructions[i].operand);
                 break;
             case INST_POP:
                 pop(loadedMachine);
@@ -135,7 +142,7 @@ int main(){
             case INST_SUB:
                 first = pop(loadedMachine);
                 second = pop(loadedMachine);
-                push(loadedMachine, second - first);
+                push(loadedMachine, first - second);
                 break;
             case INST_MUL:
                 push(loadedMachine ,pop(loadedMachine) * pop(loadedMachine));
@@ -143,10 +150,25 @@ int main(){
             case INST_DIV:
                 first = pop(loadedMachine);
                 second = pop(loadedMachine);
-                push(loadedMachine ,second / first);
+                if(second == 0){
+                    fprintf(stderr, "cant divide by 0\n");
+                    exit(EXIT_FAILURE);
+                }
+                push(loadedMachine ,first / second);
                 break;
             case INST_PRINT:
                 printf("%d\n", pop(loadedMachine));
+                break;
+            case INST_DUP:
+                first = pop(loadedMachine);
+                push(loadedMachine ,first);
+                push(loadedMachine ,first);
+                break;
+            case INST_SWAP:
+                first = pop(loadedMachine);
+                second = pop(loadedMachine);
+                push(loadedMachine, first);
+                push(loadedMachine, second);
                 break;
             default://unexpected state
                 assert(0);
