@@ -23,34 +23,54 @@ typedef enum{
     //https://en.wikipedia.org/wiki/List_of_Java_bytecode_instructions
 
     //COMPLETED INSTRUCTIONS:
+
+    //Push/Pop
     INST_PUSH,          //push onto stack  
     INST_POP,           //pop off stack
+    INST_POP2,          //pops the top two values on the stack
+    INST_PUSH_NULL,     //Pushes a null reference onto the stack //!Unfinished
+
+    //Arithmetic
     INST_ADD,           //add first 2 popped values from stack
     INST_SUB,           //subtract first 2 popped values from stack
     INST_MUL,           //multiply first 2 popped values from stack
     INST_DIV,           //divide first 2 popped values from stack
+
+    //MISC
     INST_PRINT,         //print popped value
     INST_DUP,           //pops top, and then pushes back into stack twice
     INST_SWAP,          //swaps front 2 values around
+    INST_NEG,           //Negates operand
+    INST_READ,          //Prints value top of stack, doesn't pop it off the stack fully
+    INST_STOP,          //Ignores any further instructions
+    INST_CLEAR,         //Removes all prior instructions from stack
+    INST_NOP,           //No operation
+
+
+    //Comparison
     INST_COMPE,         //Compares, if they are equal, pop both and push in 1, else, push 0
     INST_COMPNE,        //Inverse of COMPE
     INST_COMPG,         //Compares if first value is greater than second value
     INST_COMPGE,        //compares if first value is greater than or equal to the second value
     INST_COMPL,         //compares if first value is less than second value
     INST_COMPLE,        //compares if first value is less than or equal to the second value
-    INST_GOTO,          //Goes to the nearest selected value
-    INST_NOP,           //No operation
-    INST_POP2,          //pops the top two values on the stack, //!Note, pop2 does also return a underflow error if there aren't enough values on the stack
-    INST_NEG,           //Negates operand
-    INST_READ,          //Prints value top of stack, doesn't pop it off the stack fully
-    INST_STOP,          //Ignores any further instructions
+    INST_COMPE_NULL,    //Checks if top == null, if yes 1, if not 0 //!Unfinished
+    INST_COMPNE_NULL,   //inverse of COMPNE_NULL //!Unfinished
 
-//!unfinished
-    INST_PUSH_NULL,     //Pushes a null reference onto the stack
-    INST_COMPE_NULL,    //Checks if top == null, if yes 1, if not 0
-    INST_COMPNE_NULL,   //inverse of COMPNE_NULL
-    INST_GOTO_Z,        //If top of stack == 0, go to operand
-    INST_GOTO_NZ,       //If top of stack != 0, go to operand
+    //Constant instructions
+    INST_CONST_M1,      //load int value -1 onto stack
+    INST_CONST_0,       //load int value 0 onto stack
+    INST_CONST_1,       //load int value 1 onto stack
+    INST_CONST_2,       //load int value 2 onto stack
+    INST_CONST_3,       //load int value 3 onto stack
+    INST_CONST_4,       //load int value 4 onto stack
+    INST_CONST_5,       //load int value 5 onto stack
+
+    //Jumps
+    INST_GOTO,          //Goes to the nearest selected value //!Unfinished
+    INST_GOTO_Z,        //If top of stack == 0, go to operand //!Unfinished
+    INST_GOTO_NZ,       //If top of stack != 0, go to operand //!Unfinished
+
 } InstructionSet;
 
 
@@ -58,7 +78,6 @@ typedef struct{
     InstructionSet operator;    //e.g. push
     int operand;                //e.g. 2
 } Instruction;
-
 
 typedef struct{
     int stack[MAX_STACK_SIZE];
@@ -89,11 +108,20 @@ typedef struct{
 #define M_INST_NEG() {.operator = INST_NEG}
 #define M_INST_READ() {.operator = INST_READ}
 #define M_INST_STOP() {.operator = INST_STOP}
+#define M_INST_CLEAR() {.operator = INST_CLEAR}
 #define M_INST_PUSH_NULL() {.operator = INST_PUSH_NULL}
 #define M_INST_COMPE_NULL() {.operator = INST_COMPE_NULL}
 #define M_INST_COMPNE_NULL() {.operator = INST_COMPNE_NULL}
 #define M_INST_GOTO_Z(x) {.operator = INST_GOTO_Z, .operand = x}
 #define M_INST_GOTO_NZ(x) {.operator = INST_GOTO_NZ, .operand = x}
+#define M_CONST_M1() {.operator = INST_CONST_M1}
+#define M_CONST_0() {.operator = INST_CONST_0}
+#define M_CONST_1() {.operator = INST_CONST_1}
+#define M_CONST_2() {.operator = INST_CONST_2}
+#define M_CONST_3() {.operator = INST_CONST_3}
+#define M_CONST_4() {.operator = INST_CONST_4}
+#define M_CONST_5() {.operator = INST_CONST_5}
+
 //----------------------------------------------------------------
 
 //running the program
@@ -102,7 +130,9 @@ Instruction program[] = {
     M_INST_PUSH(10),
     M_INST_PUSH(0),
     M_INST_STOP(),
-    M_INST_PUSH(5),
+    M_INST_CLEAR(),
+    M_CONST_3(),
+    
 };
 #define PROGRAM_SIZE (sizeof(program)/sizeof(program[0]))
 
@@ -368,7 +398,51 @@ int main(){
                 i = loadedMachine->programSize;
                 break;
 
+            //CLEAR
+            case INST_CLEAR:
+                while(loadedMachine->currentStackSize > 0){
+                    pop(loadedMachine);
+                }
+                break;
+            
+            //CONSTANT -1
+            case INST_CONST_M1:
+                push(loadedMachine, -1);
+                break;
+
+            //CONSTANT 0
+            case INST_CONST_0:
+                push(loadedMachine, 0);
+                break;
+
+            //CONSTANT 1
+            case INST_CONST_1:
+                push(loadedMachine, 1);
+                break;
+
+            //CONSTANT 2
+            case INST_CONST_2:
+                push(loadedMachine, 2);
+                break;
+
+            //CONSTANT 3
+            case INST_CONST_3:
+                push(loadedMachine, 3);
+                break;
+
+            //CONSTANT 4
+            case INST_CONST_4:
+                push(loadedMachine, 4);
+                break;
+
+            //CONSTANT 5 
+            case INST_CONST_5:
+                push(loadedMachine, 5);
+                break;
+
+
 //!----------------------------------------------------------------------------------------------------------------
+/*
             //PUSH NULL REFERENCE ONTO STACK
             case INST_PUSH_NULL:
                 push(loadedMachine, NULL);
@@ -395,6 +469,7 @@ int main(){
                     push(loadedMachine, 1);
                 }
                 break;
+*/
 
             //GOTO IF ZERO
             case INST_GOTO_Z:
