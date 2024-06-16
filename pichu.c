@@ -5,12 +5,6 @@
 
 /*
  *  Issue Index:
- *  All known issues
- *  GOTO:
- *  - When there is only one value, it pops it and doesn't know what to do with itself
- *  - GOTO_NZ doesn't work when there isn't a 0 at the front, seem
- *  - When you use GOTO and there is a stack underflow error, it doesn't push any values that would have been in the stack already back in 
- * 
  *  NULL:
  *  - None of the NULL instructions work yet. 
 */
@@ -43,6 +37,12 @@ typedef enum{
     INST_STOP,          //Ignores any further instructions
     INST_CLEAR,         //Removes all prior instructions from stack
     INST_NOP,           //No operation
+
+    //Modify
+    INST_CHANGE_TO,     //Stores what you want to modify the value you want to change to
+    INST_MOD,           //Modifies the nearest specified value in stack
+    INST_MOD_ALL,       //Modifies all of the specified value in stack //!Unfinished
+    //(e.g. if you want to replace the nearest value 5 with the value 6, you would put M_INST_CHANGE_TO(6) and M_INST_MOD(5)
 
     //Comparison
     INST_COMPE,         //Compares, if they are equal, pop both and push in 1, else, push 0
@@ -118,18 +118,22 @@ typedef struct{
 #define M_CONST_3() {.operator = INST_CONST_3}
 #define M_CONST_4() {.operator = INST_CONST_4}
 #define M_CONST_5() {.operator = INST_CONST_5}
-
+#define M_INST_MOD(x) {.operator = INST_MOD, .operand = x}
+#define M_INST_MOD_ALL(x) {.operator = INST_MOD_ALL, .operand = x}
+#define M_INST_CHANGE_TO(x) {.operator = INST_CHANGE_TO, .operand = x}
 //----------------------------------------------------------------
 
 //running the program
 Instruction program[] = {
+    M_INST_PUSH(5),
     M_INST_PUSH(5),
     //M_INST_PUSH(4),
     M_INST_PUSH(3),
     M_INST_PUSH(76),
     //M_INST_PUSH(0),
     //M_INST_PUSH(7),
-    M_INST_GOTO_NZ(4),
+    M_INST_CHANGE_TO(6),
+    M_INST_MOD_ALL(5),
 };
 #define PROGRAM_SIZE (sizeof(program)/sizeof(program[0]))
 
@@ -538,7 +542,7 @@ int main(){
                     //COPY GOTO
                     first = loadedMachine->instructions[i].operand;
                     second = pop(loadedMachine);
-                    int popIterator =0;
+                    int popIterator = 0;
                     stackStore[0] = second; //stores initial popped value
                     //printf("stackStore[0] = %d\n", stackStore[0]);
                     for(int gotoIndex = 0; gotoIndex < loadedMachine->currentStackSize; popIterator++){
@@ -577,8 +581,64 @@ int main(){
                 }
                 break;
 
+            //REPLACE WITH
+            case INST_CHANGE_TO:
+                int changeTo = loadedMachine->instructions[i].operand;
+                printf("Change to is %d\n", changeTo);
+                break;
+
+            //MODIFY
+            case INST_MOD:
+                int mod = loadedMachine->instructions[i].operand;
+                printf("Modifying %d to %d\n", mod, changeTo);
+
+                //first = pop(loadedMachine);
+                int modifyStore[MAX_STACK_SIZE];
+                modifyStore[0] = pop(loadedMachine);
+                first = modifyStore[0];
+                printf("First outside pop = %d\n", first);
+
+                printf("ModifyStore %d\n", modifyStore[0]);
+
+                int stackIterator = 1;
+                for(int modLoop = loadedMachine->currentStackSize; modLoop != 0; modLoop--, stackIterator++){
+                    first = pop(loadedMachine);
+                    printf("stackIterator = %d\n", stackIterator);
+                    modifyStore[stackIterator] = first;
+                    printf("%d\n", first);
+                    printf("ModifyStore %d\n", modifyStore[stackIterator]);
+
+                    if(first == mod){
+                        printf("in first == mod, %d\n", first);
+                        push(loadedMachine, changeTo);
+                        //push the stored stack back
+                        for(int i = stackIterator; i != 0; i--){
+                            printf("pushing %d at %d\n", modifyStore[i-1], i-1);
+                            push(loadedMachine, modifyStore[i-1]);
+                        }
+                        break;
+                    }
+                    else{
+                        //Do nothing
+                    }
+                }
+                //read everything back into stack when nothing found
+                if(first != mod){
+                    for(int forLoopIterator = stackIterator; forLoopIterator > 0; forLoopIterator--){
+                        printf("for loop iterator :%d\n", forLoopIterator);
+                        push(loadedMachine, modifyStore[forLoopIterator-1]);
+                    }                
+                }
+                printf("Exited loop\n");
+                break; 
+
+            //MODIFY ALL
+            case INST_MOD_ALL:
+                int modAll = loadedMachine->instructions[i].operand;
+                printf("Modifying all %d to %d\n", modAll, changeTo);
+
             //DEFAULT
-            default://unexpected state
+            default: //unexpected state
                 assert(0);
                 break;
         }
