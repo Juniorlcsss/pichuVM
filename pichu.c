@@ -3,6 +3,20 @@
 #include <string.h>
 #include <assert.h>
 
+/*
+ *  Issue Index:
+ *  All known issues
+ *  GOTO:
+ *  - When there is only one value, it pops it and doesn't know what to do with itself
+ *  - GOTO_NZ doesn't work when there isn't a 0 at the front, seem
+ *  - When you use GOTO and there is a stack underflow error, it doesn't push any values that would have been in the stack already back in 
+ * 
+ *  NULL:
+ *  - None of the NULL instructions work yet. 
+*/
+
+
+
 //Constants
 #define MAX_STACK_SIZE 1024
 typedef enum{
@@ -28,6 +42,15 @@ typedef enum{
     INST_NOP,       //No operation
     INST_POP2,      //pops the top two values on the stack, //!Note, pop2 does also return a underflow error if there aren't enough values on the stack
     INST_NEG,       //Negates operand
+    INST_READ,      //Prints value top of stack, doesn't pop it off the stack fully
+    INST_STOP,      //Invalidates any further instructions
+
+//!unfinished
+    INST_PUSH_NULL,  //Pushes a null reference onto the stack
+    INST_COMPE_NULL,
+    INST_COMPNE_NULL,
+    INST_GOTO_Z,    //If top of stack == 0, go to operand
+    INST_GOTO_NZ,   //If top of stack != 0, go to operand
 } InstructionSet;
 
 
@@ -64,14 +87,22 @@ typedef struct{
 #define M_INST_NOP() {.operator = INST_NOP}
 #define M_INST_POP2() {.operator = INST_POP2}
 #define M_INST_NEG() {.operator = INST_NEG}
+#define M_INST_READ() {.operator = INST_READ}
+#define M_INST_STOP() {.operator = INST_STOP}
+#define M_INST_PUSH_NULL() {.operator = INST_PUSH_NULL}
+#define M_INST_COMPE_NULL() {.operator = INST_COMPE_NULL}
+#define M_INST_COMPNE_NULL() {.operator = INST_COMPNE_NULL}
+#define M_INST_GOTO_Z(x) {.operator = INST_GOTO_Z, .operand = x}
+#define M_INST_GOTO_NZ(x) {.operator = INST_GOTO_NZ, .operand = x}
 //----------------------------------------------------------------
 
 //running the program
 Instruction program[] = {
     M_INST_PUSH(5),
     M_INST_PUSH(10),
-    M_INST_GOTO(15),
-
+    M_INST_PUSH(0),
+    M_INST_STOP(),
+    M_INST_PUSH(5),
 };
 #define PROGRAM_SIZE (sizeof(program)/sizeof(program[0]))
 
@@ -145,6 +176,7 @@ Machine *readFromFile(Machine *machine, char *filename){
 
 int main(){
     int first, second; //first and second operands, used for division and subtraction
+    int gotoStore;     //Used for GOTO_Z and GOTO_NZ
 
     Machine *loadedMachine = malloc(sizeof(Machine) * MAX_STACK_SIZE);
     loadedMachine->instructions = program;
@@ -288,13 +320,15 @@ int main(){
             case INST_GOTO:
                 first = loadedMachine->instructions[i].operand;
                 second = pop(loadedMachine);
+                //push(loadedMachine, second);
                 for(int gotoIndex = 0; gotoIndex < loadedMachine->currentStackSize;){
+                    printf("first = %d, second = %d\n", first, second);
                     if(first != second){
-                        //printf("First != second loop\n");
+                        printf("First != second loop\n");
                         second = pop(loadedMachine);
                     }
                     if(first == second){
-                        //printf("First == second loop\n");
+                        printf("First == second loop\n");
                         push(loadedMachine, second);
                         break;
                     }
@@ -322,6 +356,104 @@ int main(){
                 push(loadedMachine, -first);
                 break;
 
+            //READ
+            case INST_READ:
+                first = pop(loadedMachine);
+                printf("top of stack is %d\n", first);
+                push(loadedMachine, first);
+                break;
+
+            //STOP
+            case INST_STOP:
+                i = loadedMachine->programSize;
+                break;
+
+//!----------------------------------------------------------------------------------------------------------------
+            //PUSH NULL REFERENCE ONTO STACK
+            case INST_PUSH_NULL:
+                push(loadedMachine, NULL);
+                break;
+
+            //COMPARE NULL
+            case INST_COMPE_NULL:
+                first = pop(loadedMachine);
+                if(first == NULL){
+                    push(loadedMachine, 1);
+                }
+                else{
+                    push(loadedMachine, 0);
+                }
+                break;
+
+            //COMPARE NOT NULL
+            case INST_COMPNE_NULL:
+                first = pop(loadedMachine);
+                if(first == NULL){
+                    push(loadedMachine, 0);
+                }
+                else{
+                    push(loadedMachine, 1);
+                }
+                break;
+
+            //GOTO IF ZERO
+            case INST_GOTO_Z:
+                gotoStore = pop(loadedMachine);
+                printf("Popped first value and stored it as %d\n", gotoStore);
+                if(gotoStore == 0){
+                    //COPY GOTO
+                    first = loadedMachine->instructions[i].operand;
+                    second = pop(loadedMachine);
+                    for(int gotoIndex = 0; gotoIndex < loadedMachine->currentStackSize;){
+                        if(first != second){
+                            printf("First != second loop\n");
+                            second = pop(loadedMachine);
+                        }
+                        if(first == second){
+                            printf("First == second loop\n");
+                            push(loadedMachine, second);
+                            break;
+                        }
+                        else{
+                            fprintf(stderr,"out of bounds\n");
+                            exit(EXIT_FAILURE);
+                        }
+                    }
+                }
+                else{
+                    //PUSH POPPED VALUE BACK IN
+                    push(loadedMachine, gotoStore);
+                }
+                break;
+
+            //GOTO IF NOT ZERO
+            case INST_GOTO_NZ:
+                gotoStore = pop(loadedMachine);
+                printf("Popped first value and stored it as %d\n", gotoStore);
+                if(gotoStore == 0){
+                    push(loadedMachine, gotoStore);
+                }
+                else{
+                    first = loadedMachine->instructions[i].operand;
+                    second = pop(loadedMachine);
+                    for(int gotoIndex = 0; gotoIndex < loadedMachine->currentStackSize;){
+                        if(first != second){
+                            printf("First != second loop\n");
+                            second = pop(loadedMachine);
+                        }
+                        if(first == second){
+                            printf("First == second loop\n");
+                            push(loadedMachine, second);
+                            break;
+                        }
+                        else{
+                            fprintf(stderr,"out of bounds\n");
+                            exit(EXIT_FAILURE);
+                        }
+                    }
+                }
+                break;
+//!-------------------------------------------------------------------------------------------------------------------------------
             //DEFAULT
             default://unexpected state
                 assert(0);
