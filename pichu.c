@@ -23,34 +23,34 @@ typedef enum{
     //https://en.wikipedia.org/wiki/List_of_Java_bytecode_instructions
 
     //COMPLETED INSTRUCTIONS:
-    INST_PUSH,      //push onto stack  
-    INST_POP,       //pop off stack
-    INST_ADD,       //add first 2 popped values from stack
-    INST_SUB,       //subtract first 2 popped values from stack
-    INST_MUL,       //multiply first 2 popped values from stack
-    INST_DIV,       //divide first 2 popped values from stack
-    INST_PRINT,     //print popped value
-    INST_DUP,       //pops top, and then pushes back into stack twice
-    INST_SWAP,      //swaps front 2 values around
-    INST_COMPE,     //Compares, if they are equal, pop both and push in 1, else, push 0
-    INST_COMPNE,    //Inverse of COMPE
-    INST_COMPG,     //Compares if first value is greater than second value
-    INST_COMPGE,    //compares if first value is greater than or equal to the second value
-    INST_COMPL,     //compares if first value is less than second value
-    INST_COMPLE,    //compares if first value is less than or equal to the second value
-    INST_GOTO,      //Goes to the nearest selected value
-    INST_NOP,       //No operation
-    INST_POP2,      //pops the top two values on the stack, //!Note, pop2 does also return a underflow error if there aren't enough values on the stack
-    INST_NEG,       //Negates operand
-    INST_READ,      //Prints value top of stack, doesn't pop it off the stack fully
-    INST_STOP,      //Invalidates any further instructions
+    INST_PUSH,          //push onto stack  
+    INST_POP,           //pop off stack
+    INST_ADD,           //add first 2 popped values from stack
+    INST_SUB,           //subtract first 2 popped values from stack
+    INST_MUL,           //multiply first 2 popped values from stack
+    INST_DIV,           //divide first 2 popped values from stack
+    INST_PRINT,         //print popped value
+    INST_DUP,           //pops top, and then pushes back into stack twice
+    INST_SWAP,          //swaps front 2 values around
+    INST_COMPE,         //Compares, if they are equal, pop both and push in 1, else, push 0
+    INST_COMPNE,        //Inverse of COMPE
+    INST_COMPG,         //Compares if first value is greater than second value
+    INST_COMPGE,        //compares if first value is greater than or equal to the second value
+    INST_COMPL,         //compares if first value is less than second value
+    INST_COMPLE,        //compares if first value is less than or equal to the second value
+    INST_GOTO,          //Goes to the nearest selected value
+    INST_NOP,           //No operation
+    INST_POP2,          //pops the top two values on the stack, //!Note, pop2 does also return a underflow error if there aren't enough values on the stack
+    INST_NEG,           //Negates operand
+    INST_READ,          //Prints value top of stack, doesn't pop it off the stack fully
+    INST_STOP,          //Ignores any further instructions
 
 //!unfinished
-    INST_PUSH_NULL,  //Pushes a null reference onto the stack
-    INST_COMPE_NULL,
-    INST_COMPNE_NULL,
-    INST_GOTO_Z,    //If top of stack == 0, go to operand
-    INST_GOTO_NZ,   //If top of stack != 0, go to operand
+    INST_PUSH_NULL,     //Pushes a null reference onto the stack
+    INST_COMPE_NULL,    //Checks if top == null, if yes 1, if not 0
+    INST_COMPNE_NULL,   //inverse of COMPNE_NULL
+    INST_GOTO_Z,        //If top of stack == 0, go to operand
+    INST_GOTO_NZ,       //If top of stack != 0, go to operand
 } InstructionSet;
 
 
