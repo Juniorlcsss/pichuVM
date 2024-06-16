@@ -124,12 +124,12 @@ typedef struct{
 //running the program
 Instruction program[] = {
     M_INST_PUSH(5),
-    M_INST_PUSH(4),
-    //M_INST_PUSH(3),
-    //M_INST_PUSH(76),
+    //M_INST_PUSH(4),
+    M_INST_PUSH(3),
+    M_INST_PUSH(76),
     //M_INST_PUSH(0),
     //M_INST_PUSH(7),
-    //M_INST_GOTO_NZ(4),
+    M_INST_GOTO_NZ(4),
 };
 #define PROGRAM_SIZE (sizeof(program)/sizeof(program[0]))
 
@@ -416,8 +416,7 @@ int main(){
                 break;
 
 
-//!----------------------------------------------------------------------------------------------------------------
-/*
+/*//!-----------------------------------------------------------------
             //PUSH NULL REFERENCE ONTO STACK
             case INST_PUSH_NULL:
                 push(loadedMachine, NULL);
@@ -444,7 +443,7 @@ int main(){
                     push(loadedMachine, 1);
                 }
                 break;
-*/
+*///!-----------------------------------------------------------------
 
             //GOTO
             //NOTE: I have commented out the printf checks for this instruction
@@ -521,6 +520,7 @@ int main(){
                             printf("for loop iterator :%d\n", forLoopIterator);
                             push(loadedMachine, stackStore[forLoopIterator]);
                         }
+                        push(loadedMachine, gotoStore);
                     }
                     //printf("exited for loop\n");
                 }
@@ -567,6 +567,7 @@ int main(){
                             printf("for loop iterator :%d\n", forLoopIterator);
                             push(loadedMachine, stackStore[forLoopIterator]);
                         }
+                        push(loadedMachine, gotoStore);
                     }
                     //printf("exited for loop\n");
                 }
@@ -575,7 +576,7 @@ int main(){
                     push(loadedMachine, gotoStore);
                 }
                 break;
-//!-------------------------------------------------------------------------------------------------------------------------------
+
             //DEFAULT
             default://unexpected state
                 assert(0);
