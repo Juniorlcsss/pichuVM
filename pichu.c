@@ -22,8 +22,6 @@
 typedef enum{
     //https://en.wikipedia.org/wiki/List_of_Java_bytecode_instructions
 
-    //COMPLETED INSTRUCTIONS:
-
     //Push/Pop
     INST_PUSH,          //push onto stack  
     INST_POP,           //pop off stack
@@ -46,7 +44,6 @@ typedef enum{
     INST_CLEAR,         //Removes all prior instructions from stack
     INST_NOP,           //No operation
 
-
     //Comparison
     INST_COMPE,         //Compares, if they are equal, pop both and push in 1, else, push 0
     INST_COMPNE,        //Inverse of COMPE
@@ -67,9 +64,9 @@ typedef enum{
     INST_CONST_5,       //load int value 5 onto stack
 
     //Jumps
-    INST_GOTO,          //Goes to the nearest selected value //!Unfinished
-    INST_GOTO_Z,        //If top of stack == 0, go to operand //!Unfinished
-    INST_GOTO_NZ,       //If top of stack != 0, go to operand //!Unfinished
+    INST_GOTO,          //Goes to the nearest selected value
+    INST_GOTO_Z,        //If top of stack == 0, go to operand 
+    INST_GOTO_NZ,       //If top of stack != 0, go to operand
 
 } InstructionSet;
 
@@ -127,12 +124,12 @@ typedef struct{
 //running the program
 Instruction program[] = {
     M_INST_PUSH(5),
-    M_INST_PUSH(10),
-    M_INST_PUSH(0),
-    M_INST_STOP(),
-    M_INST_CLEAR(),
-    M_CONST_3(),
-    
+    M_INST_PUSH(4),
+    //M_INST_PUSH(3),
+    //M_INST_PUSH(76),
+    //M_INST_PUSH(0),
+    //M_INST_PUSH(7),
+    //M_INST_GOTO_NZ(4),
 };
 #define PROGRAM_SIZE (sizeof(program)/sizeof(program[0]))
 
@@ -207,6 +204,7 @@ Machine *readFromFile(Machine *machine, char *filename){
 int main(){
     int first, second; //first and second operands, used for division and subtraction
     int gotoStore;     //Used for GOTO_Z and GOTO_NZ
+    int stackStore[MAX_STACK_SIZE]; //used to store previous values within the stack to restore during GOTO operation failures
 
     Machine *loadedMachine = malloc(sizeof(Machine) * MAX_STACK_SIZE);
     loadedMachine->instructions = program;
@@ -345,29 +343,6 @@ int main(){
                     push(loadedMachine, 0);
                 }
                 break; 
-
-            //GOTO
-            case INST_GOTO:
-                first = loadedMachine->instructions[i].operand;
-                second = pop(loadedMachine);
-                //push(loadedMachine, second);
-                for(int gotoIndex = 0; gotoIndex < loadedMachine->currentStackSize;){
-                    printf("first = %d, second = %d\n", first, second);
-                    if(first != second){
-                        printf("First != second loop\n");
-                        second = pop(loadedMachine);
-                    }
-                    if(first == second){
-                        printf("First == second loop\n");
-                        push(loadedMachine, second);
-                        break;
-                    }
-                    else{
-                        fprintf(stderr,"out of bounds\n");
-                        exit(EXIT_FAILURE);
-                    }
-                }
-                break;
             
             //NO OPERATION
             case INST_NOP:
@@ -471,6 +446,44 @@ int main(){
                 break;
 */
 
+            //GOTO
+            //NOTE: I have commented out the printf checks for this instruction
+            case INST_GOTO:
+                first = loadedMachine->instructions[i].operand;
+                second = pop(loadedMachine);
+                int popIterator =0;
+                stackStore[0] = second; //stores initial popped value
+                //printf("stackStore[0] = %d\n", stackStore[0]);
+                for(int gotoIndex = 0; gotoIndex < loadedMachine->currentStackSize; popIterator++){
+                    //printf("first = %d, second = %d\n", first, second);
+                    if(first != second){
+                        //printf("First != second loop\n");
+                        second = pop(loadedMachine);
+                        stackStore[popIterator+1] = second;
+                        //printf("%d\n", stackStore[popIterator]);
+                    }
+                    else if(first == second){
+                        //printf("First == second loop\n");
+                        push(loadedMachine, second);
+                        break; //want to break here so it doesn't readd the stack
+                    }
+                    else{
+                        fprintf(stderr,"out of bounds\n");
+                        //exit loop and go into the other loop outside the for loop
+                        //exit(EXIT_FAILURE);
+                    }
+                }
+                //this re adds the values back into the stack
+                if(first != second) {
+                //printf("popIterator = %d\n", popIterator);
+                    for(int forLoopIterator = popIterator; forLoopIterator > -1; forLoopIterator--){
+                        printf("for loop iterator :%d\n", forLoopIterator);
+                        push(loadedMachine, stackStore[forLoopIterator]);
+                    }
+                }
+                //printf("exited for loop\n");
+                break;
+
             //GOTO IF ZERO
             case INST_GOTO_Z:
                 gotoStore = pop(loadedMachine);
@@ -479,21 +492,37 @@ int main(){
                     //COPY GOTO
                     first = loadedMachine->instructions[i].operand;
                     second = pop(loadedMachine);
-                    for(int gotoIndex = 0; gotoIndex < loadedMachine->currentStackSize;){
+                    int popIterator =0;
+                    stackStore[0] = second; //stores initial popped value
+                    //printf("stackStore[0] = %d\n", stackStore[0]);
+                    for(int gotoIndex = 0; gotoIndex < loadedMachine->currentStackSize; popIterator++){
+                        //printf("first = %d, second = %d\n", first, second);
                         if(first != second){
-                            printf("First != second loop\n");
+                            //printf("First != second loop\n");
                             second = pop(loadedMachine);
+                            stackStore[popIterator+1] = second;
+                            //printf("%d\n", stackStore[popIterator]);
                         }
-                        if(first == second){
-                            printf("First == second loop\n");
+                        else if(first == second){
+                            //printf("First == second loop\n");
                             push(loadedMachine, second);
-                            break;
+                            break; //want to break here so it doesn't readd the stack
                         }
                         else{
                             fprintf(stderr,"out of bounds\n");
-                            exit(EXIT_FAILURE);
+                            //exit loop and go into the other loop outside the for loop
+                            //exit(EXIT_FAILURE);
                         }
                     }
+                    //this re adds the values back into the stack
+                    if(first != second) {
+                    //printf("popIterator = %d\n", popIterator);
+                        for(int forLoopIterator = popIterator; forLoopIterator > -1; forLoopIterator--){
+                            printf("for loop iterator :%d\n", forLoopIterator);
+                            push(loadedMachine, stackStore[forLoopIterator]);
+                        }
+                    }
+                    //printf("exited for loop\n");
                 }
                 else{
                     //PUSH POPPED VALUE BACK IN
@@ -505,27 +534,45 @@ int main(){
             case INST_GOTO_NZ:
                 gotoStore = pop(loadedMachine);
                 printf("Popped first value and stored it as %d\n", gotoStore);
-                if(gotoStore == 0){
-                    push(loadedMachine, gotoStore);
-                }
-                else{
+                if(gotoStore != 0){
+                    //COPY GOTO
                     first = loadedMachine->instructions[i].operand;
                     second = pop(loadedMachine);
-                    for(int gotoIndex = 0; gotoIndex < loadedMachine->currentStackSize;){
+                    int popIterator =0;
+                    stackStore[0] = second; //stores initial popped value
+                    //printf("stackStore[0] = %d\n", stackStore[0]);
+                    for(int gotoIndex = 0; gotoIndex < loadedMachine->currentStackSize; popIterator++){
+                        //printf("first = %d, second = %d\n", first, second);
                         if(first != second){
-                            printf("First != second loop\n");
+                            //printf("First != second loop\n");
                             second = pop(loadedMachine);
+                            stackStore[popIterator+1] = second;
+                            //printf("%d\n", stackStore[popIterator]);
                         }
-                        if(first == second){
-                            printf("First == second loop\n");
+                        else if(first == second){
+                            //printf("First == second loop\n");
                             push(loadedMachine, second);
-                            break;
+                            break; //want to break here so it doesn't readd the stack
                         }
                         else{
                             fprintf(stderr,"out of bounds\n");
-                            exit(EXIT_FAILURE);
+                            //exit loop and go into the other loop outside the for loop
+                            //exit(EXIT_FAILURE);
                         }
                     }
+                    //this re adds the values back into the stack
+                    if(first != second) {
+                    //printf("popIterator = %d\n", popIterator);
+                        for(int forLoopIterator = popIterator; forLoopIterator > -1; forLoopIterator--){
+                            printf("for loop iterator :%d\n", forLoopIterator);
+                            push(loadedMachine, stackStore[forLoopIterator]);
+                        }
+                    }
+                    //printf("exited for loop\n");
+                }
+                else{
+                    //PUSH POPPED VALUE BACK IN
+                    push(loadedMachine, gotoStore);
                 }
                 break;
 //!-------------------------------------------------------------------------------------------------------------------------------
