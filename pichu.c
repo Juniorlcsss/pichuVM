@@ -43,6 +43,8 @@ typedef enum{
     INST_CLEAR,         //Removes all prior instructions from stack
     INST_NOP,           //No operation
     INST_FLIP,          //Inverts the stack
+    INST_INDEX_SWAP,    //Swaps operands around depending on the position of the swap (e.g. swap(0) would swap the top of the stack to the bottom of the stack)
+    INST_INDEX_DUP,     //Swaps operands like swap, but the duplicate stays where it initially was
 
     //Modify
     INST_CHANGE_TO,     //Stores what you want to modify the value you want to change to
@@ -76,8 +78,6 @@ typedef enum{
     INST_GOTO_C,        //If top of stack = given condition, go to operand
     INST_GOTO_NC,       //If top of stack != given condition, go to operand
     INST_CONDITION,     //Input the condition to be used for goto
-    INST_GOTO_BOTTOM,   
-
 } InstructionSet;
 
 
@@ -139,17 +139,18 @@ typedef struct{
 #define M_INST_DEC() {.operator = INST_DEC}
 #define M_INST_INC_ALL() {.operator = INST_INC_ALL}
 #define M_INST_DEC_ALL() {.operator = INST_DEC_ALL}
+#define M_INST_INDEX_DUP(x) {.operator = INST_INDEX_DUP, .operand = x}
+#define M_INST_INDEX_SWAP(x) {.operator = INST_INDEX_SWAP, .operand = x}
+
 //----------------------------------------------------------------
 
 //running the program
 Instruction program[] = {
-    M_INST_PUSH(5),
-    M_INST_PUSH(5),
-    //M_INST_PUSH(4),
-    M_INST_PUSH(3),
-    M_INST_PUSH(76),
-    M_INST_DEC_ALL(),
-    //M_INST_INC_ALL(),
+    M_INST_PUSH(1),
+    M_INST_PUSH(4),
+    M_INST_PUSH(6),
+    M_INST_PUSH(8),
+    M_INST_INDEX_DUP(0),
 };
 #define PROGRAM_SIZE (sizeof(program)/sizeof(program[0]))
 
@@ -168,6 +169,24 @@ int pop(Machine *machine){                  //pop the top
     }
     machine->currentStackSize--;
     return machine->stack[machine->currentStackSize];
+}
+
+void IndexSwap(Machine *machine, int index){
+    if(index > machine->currentStackSize || index < 0){
+        fprintf(stderr, "index out of bounds\n");
+        exit(EXIT_FAILURE);
+    }
+    int temp = machine->stack[index];
+    machine->stack[index] = pop(machine);
+    push(machine,temp);
+}
+
+void IndexDuplicate(Machine *machine, int index){
+    if(index > machine->currentStackSize || index < 0){
+        fprintf(stderr, "index out of bounds\n");
+        exit(EXIT_FAILURE);
+    }
+    push(machine, machine->stack[index]);
 }
 
 void printStack(Machine *machine){          //prints operands on the stack
@@ -824,7 +843,7 @@ int main(){
                     printf("at %d, = %d\n",stackIterator, incAllStore[stackIterator]);
                 }
                 for(int i = stackIterator; i != 0; i--){
-                    printf("i = %d\n",i);
+                    //printf("i = %d\n",i);
                     push(loadedMachine, incAllStore[i-1]);
                 }
                 break;
@@ -838,9 +857,19 @@ int main(){
                     printf("at %d, = %d\n",stackIterator, decAllStore[stackIterator]);
                 }
                 for(int i = stackIterator; i != 0; i--){
-                    printf("i = %d\n",i);
+                    //printf("i = %d\n",i);
                     push(loadedMachine, decAllStore[i-1]);
                 }
+                break;
+
+            //INDEX SWAP
+            case INST_INDEX_SWAP:
+                IndexSwap(loadedMachine, loadedMachine->instructions[i].operand);
+                break;
+
+            //INDEX DUPLICATE
+            case INST_INDEX_DUP:
+                IndexDuplicate(loadedMachine, loadedMachine->instructions[i].operand);
                 break;
 
             //DEFAULT
