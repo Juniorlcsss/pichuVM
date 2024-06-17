@@ -27,21 +27,26 @@ typedef enum{
     INST_SUB,           //subtract first 2 popped values from stack
     INST_MUL,           //multiply first 2 popped values from stack
     INST_DIV,           //divide first 2 popped values from stack
+    INST_INC,           //Increments the top of stack by 1 //!Unfinished
+    INST_INC_ALL,       //Increments all values of stack by 1 //!Unfinished
+    INST_DEC,           //Decrements the top of stack by 1 //!Unfinished
+    INST_DEC_ALL,       //Decrements all of the values on the stack by 1 //!Unfinished
 
     //MISC
     INST_PRINT,         //print popped value
     INST_DUP,           //pops top, and then pushes back into stack twice
     INST_SWAP,          //swaps front 2 values around
     INST_NEG,           //Negates operand
-    INST_READ,          //Prints value top of stack, doesn't pop it off the stack fully
+    INST_READ,          //Prints value top of stack, doesn't pop it off the stack
     INST_STOP,          //Ignores any further instructions
     INST_CLEAR,         //Removes all prior instructions from stack
     INST_NOP,           //No operation
+    INST_FLIP,          //Inverts the stack
 
     //Modify
     INST_CHANGE_TO,     //Stores what you want to modify the value you want to change to
     INST_MOD,           //Modifies the nearest specified value in stack
-    INST_MOD_ALL,       //Modifies all of the specified value in stack //!Unfinished
+    INST_MOD_ALL,       //Modifies all of the specified value in stack
     //(e.g. if you want to replace the nearest value 5 with the value 6, you would put M_INST_CHANGE_TO(6) and M_INST_MOD(5)
 
     //Comparison
@@ -67,6 +72,10 @@ typedef enum{
     INST_GOTO,          //Goes to the nearest selected value
     INST_GOTO_Z,        //If top of stack == 0, go to operand 
     INST_GOTO_NZ,       //If top of stack != 0, go to operand
+    INST_GOTO_C,        //If top of stack = given condition, go to operand
+    INST_GOTO_NC,       //If top of stack != given condition, go to operand
+    INST_CONDITION,     //Input the condition to be used for goto
+    INST_GOTO_BOTTOM,   
 
 } InstructionSet;
 
@@ -121,19 +130,25 @@ typedef struct{
 #define M_INST_MOD(x) {.operator = INST_MOD, .operand = x}
 #define M_INST_MOD_ALL(x) {.operator = INST_MOD_ALL, .operand = x}
 #define M_INST_CHANGE_TO(x) {.operator = INST_CHANGE_TO, .operand = x}
+#define M_INST_FLIP() {.operator = INST_FLIP}
+#define M_INST_CONDITION(x) {.operator = INST_CONDITION, .operand = x}
+#define M_INST_GOTO_C(x) {.operator = INST_GOTO_C, .operand = x}
+#define M_INST_GOTO_NC(x) {.operator = INST_GOTO_NC, .operand = x}
 //----------------------------------------------------------------
 
 //running the program
 Instruction program[] = {
-    //M_INST_PUSH(5),
+    M_INST_PUSH(5),
     M_INST_PUSH(5),
     //M_INST_PUSH(4),
     M_INST_PUSH(3),
     M_INST_PUSH(76),
     //M_INST_PUSH(0),
     //M_INST_PUSH(7),
-    M_INST_CHANGE_TO(6),
-    M_INST_MOD_ALL(5),
+    //M_INST_CHANGE_TO(6),
+    //M_INST_MOD_ALL(5),
+    M_INST_CONDITION(6),
+    M_INST_GOTO_NC(3),
 };
 #define PROGRAM_SIZE (sizeof(program)/sizeof(program[0]))
 
@@ -667,6 +682,123 @@ int main(){
                 printf("Exited loop\n");
                 break; 
 
+            //FLIPS STACK
+            case INST_FLIP:
+                int flipStore[MAX_STACK_SIZE];
+                stackIterator = 0;
+
+                //puts stack into flipStore
+                for(int i = loadedMachine->currentStackSize; i != 0; i--, stackIterator++){
+                    flipStore[stackIterator] = pop(loadedMachine);
+                    printf("%d\n", flipStore[stackIterator]);
+                }
+
+                //puts flipStore back into stack
+                for(int i = 1; i != stackIterator+1; i++){
+                    printf("pushing %d at %d\n", flipStore[i-1], i-1);
+                    push(loadedMachine, flipStore[i-1]);
+                }
+                break;
+
+            //JUMP CONDITION
+            case INST_CONDITION:
+                int condition = loadedMachine->instructions[i].operand;
+                printf("GOTO condition is set to %d\n", condition);
+                break;
+
+            //GOTO IF CONDITION = TRUE
+            case INST_GOTO_C:
+                gotoStore = pop(loadedMachine);
+                printf("Popped first value and stored it as %d\n", gotoStore);
+                if(gotoStore == condition){
+                    //COPY GOTO
+                    first = loadedMachine->instructions[i].operand;
+                    second = pop(loadedMachine);
+                    int popIterator =0;
+                    stackStore[0] = second; //stores initial popped value
+                    //printf("stackStore[0] = %d\n", stackStore[0]);
+                    for(int gotoIndex = 0; gotoIndex < loadedMachine->currentStackSize; popIterator++){
+                        //printf("first = %d, second = %d\n", first, second);
+                        if(first != second){
+                            //printf("First != second loop\n");
+                            second = pop(loadedMachine);
+                            stackStore[popIterator+1] = second;
+                            //printf("%d\n", stackStore[popIterator]);
+                        }
+                        else if(first == second){
+                            //printf("First == second loop\n");
+                            push(loadedMachine, second);
+                            break; //want to break here so it doesn't readd the stack
+                        }
+                        else{
+                            fprintf(stderr,"out of bounds\n");
+                            //exit loop and go into the other loop outside the for loop
+                            //exit(EXIT_FAILURE);
+                        }
+                    }
+                    //this re adds the values back into the stack
+                    if(first != second) {
+                    //printf("popIterator = %d\n", popIterator);
+                        for(int forLoopIterator = popIterator; forLoopIterator > -1; forLoopIterator--){
+                            printf("for loop iterator :%d\n", forLoopIterator);
+                            push(loadedMachine, stackStore[forLoopIterator]);
+                        }
+                        push(loadedMachine, gotoStore);
+                    }
+                    //printf("exited for loop\n");
+                }
+                else{
+                    //PUSH POPPED VALUE BACK IN
+                    push(loadedMachine, gotoStore);
+                }
+                break;
+
+            //GOTO IF CONDITION = FALSE
+            case INST_GOTO_NC:
+                gotoStore = pop(loadedMachine);
+                printf("Popped first value and stored it as %d\n", gotoStore);
+                if(gotoStore != condition){
+                    //COPY GOTO
+                    first = loadedMachine->instructions[i].operand;
+                    second = pop(loadedMachine);
+                    int popIterator = 0;
+                    stackStore[0] = second; //stores initial popped value
+                    //printf("stackStore[0] = %d\n", stackStore[0]);
+                    for(int gotoIndex = 0; gotoIndex < loadedMachine->currentStackSize; popIterator++){
+                        //printf("first = %d, second = %d\n", first, second);
+                        if(first != second){
+                            //printf("First != second loop\n");
+                            second = pop(loadedMachine);
+                            stackStore[popIterator+1] = second;
+                            //printf("%d\n", stackStore[popIterator]);
+                        }
+                        else if(first == second){
+                            //printf("First == second loop\n");
+                            push(loadedMachine, second);
+                            break; //want to break here so it doesn't readd the stack
+                        }
+                        else{
+                            fprintf(stderr,"out of bounds\n");
+                            //exit loop and go into the other loop outside the for loop
+                            //exit(EXIT_FAILURE);
+                        }
+                    }
+                    //this re adds the values back into the stack
+                    if(first != second) {
+                    //printf("popIterator = %d\n", popIterator);
+                        for(int forLoopIterator = popIterator; forLoopIterator > -1; forLoopIterator--){
+                            printf("for loop iterator :%d\n", forLoopIterator);
+                            push(loadedMachine, stackStore[forLoopIterator]);
+                        }
+                        push(loadedMachine, gotoStore);
+                    }
+                    //printf("exited for loop\n");
+                }
+                else{
+                    //PUSH POPPED VALUE BACK IN
+                    push(loadedMachine, gotoStore);
+                }                
+                break;
 
             //DEFAULT
             default: //unexpected state
