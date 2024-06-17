@@ -125,7 +125,7 @@ typedef struct{
 
 //running the program
 Instruction program[] = {
-    M_INST_PUSH(5),
+    //M_INST_PUSH(5),
     M_INST_PUSH(5),
     //M_INST_PUSH(4),
     M_INST_PUSH(3),
@@ -636,6 +636,37 @@ int main(){
             case INST_MOD_ALL:
                 int modAll = loadedMachine->instructions[i].operand;
                 printf("Modifying all %d to %d\n", modAll, changeTo);
+                int modifyAllStore[MAX_STACK_SIZE];
+
+                first = pop(loadedMachine);
+                modifyAllStore[0] = first;
+                printf("First outside pop = %d/%d\n", first, modifyAllStore[0]);
+
+                stackIterator = 1;
+                for(int modLoop = loadedMachine->currentStackSize; modLoop != 0; modLoop--, stackIterator++){
+                    first = pop(loadedMachine);
+                    printf("stackIterator = %d\n", stackIterator);
+                    modifyAllStore[stackIterator] = first;
+                    printf("%d\n", first);
+                    printf("ModifyStore %d\n", modifyAllStore[stackIterator]);   
+
+                    if(first == modAll){
+                        printf("first==modAll loop ,first:%d\n", first);
+                        modifyAllStore[stackIterator] = changeTo;
+                        printf("ModifyStore %d\n", modifyAllStore[stackIterator]);
+                    }
+                    else{
+                        //Do nothing
+                    }
+                }
+                //add everything back into the stack
+                for(int i = stackIterator; i > 0; i--){
+                    printf("Entered 2nd for loop");
+                    push(loadedMachine, modifyAllStore[i-1]);
+                }
+                printf("Exited loop\n");
+                break; 
+
 
             //DEFAULT
             default: //unexpected state
