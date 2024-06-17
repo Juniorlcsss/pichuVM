@@ -15,6 +15,7 @@
 #define MAX_STACK_SIZE 1024
 typedef enum{
     //https://en.wikipedia.org/wiki/List_of_Java_bytecode_instructions
+    //https://en.wikipedia.org/wiki/X86_instruction_listings
 
     //Push/Pop
     INST_PUSH,          //push onto stack  
@@ -27,10 +28,10 @@ typedef enum{
     INST_SUB,           //subtract first 2 popped values from stack
     INST_MUL,           //multiply first 2 popped values from stack
     INST_DIV,           //divide first 2 popped values from stack
-    INST_INC,           //Increments the top of stack by 1 //!Unfinished
-    INST_INC_ALL,       //Increments all values of stack by 1 //!Unfinished
-    INST_DEC,           //Decrements the top of stack by 1 //!Unfinished
-    INST_DEC_ALL,       //Decrements all of the values on the stack by 1 //!Unfinished
+    INST_INC,           //Increments the top of stack by 1
+    INST_INC_ALL,       //Increments all values of stack by 1
+    INST_DEC,           //Decrements the top of stack by 1 
+    INST_DEC_ALL,       //Decrements all of the values on the stack by 1
 
     //MISC
     INST_PRINT,         //print popped value
@@ -134,6 +135,10 @@ typedef struct{
 #define M_INST_CONDITION(x) {.operator = INST_CONDITION, .operand = x}
 #define M_INST_GOTO_C(x) {.operator = INST_GOTO_C, .operand = x}
 #define M_INST_GOTO_NC(x) {.operator = INST_GOTO_NC, .operand = x}
+#define M_INST_INC() {.operator = INST_INC}
+#define M_INST_DEC() {.operator = INST_DEC}
+#define M_INST_INC_ALL() {.operator = INST_INC_ALL}
+#define M_INST_DEC_ALL() {.operator = INST_DEC_ALL}
 //----------------------------------------------------------------
 
 //running the program
@@ -143,12 +148,8 @@ Instruction program[] = {
     //M_INST_PUSH(4),
     M_INST_PUSH(3),
     M_INST_PUSH(76),
-    //M_INST_PUSH(0),
-    //M_INST_PUSH(7),
-    //M_INST_CHANGE_TO(6),
-    //M_INST_MOD_ALL(5),
-    M_INST_CONDITION(6),
-    M_INST_GOTO_NC(3),
+    M_INST_DEC_ALL(),
+    //M_INST_INC_ALL(),
 };
 #define PROGRAM_SIZE (sizeof(program)/sizeof(program[0]))
 
@@ -700,7 +701,7 @@ int main(){
                 }
                 break;
 
-            //JUMP CONDITION
+            //GOTO CONDITION
             case INST_CONDITION:
                 int condition = loadedMachine->instructions[i].operand;
                 printf("GOTO condition is set to %d\n", condition);
@@ -798,6 +799,48 @@ int main(){
                     //PUSH POPPED VALUE BACK IN
                     push(loadedMachine, gotoStore);
                 }                
+                break;
+
+            //INCREMENT TOP
+            case INST_INC:
+                first = pop(loadedMachine);
+                first++;
+                push(loadedMachine, first);
+                break;
+
+            //DECREMENT TOP
+            case INST_DEC:
+                first = pop(loadedMachine);
+                first--;
+                push(loadedMachine, first);
+                break;
+
+            //INCREMENT ALL
+            case INST_INC_ALL:
+                int incAllStore[MAX_STACK_SIZE];
+                stackIterator = 0;
+                for(int i = loadedMachine->currentStackSize; i != 0; i--, stackIterator++){
+                    incAllStore[stackIterator] = pop(loadedMachine) + 1;
+                    printf("at %d, = %d\n",stackIterator, incAllStore[stackIterator]);
+                }
+                for(int i = stackIterator; i != 0; i--){
+                    printf("i = %d\n",i);
+                    push(loadedMachine, incAllStore[i-1]);
+                }
+                break;
+
+            //DECREMENT ALL
+            case INST_DEC_ALL:
+                int decAllStore[MAX_STACK_SIZE];
+                stackIterator = 0;
+                for(int i = loadedMachine->currentStackSize; i != 0; i--, stackIterator++){
+                    decAllStore[stackIterator] = pop(loadedMachine) - 1;
+                    printf("at %d, = %d\n",stackIterator, decAllStore[stackIterator]);
+                }
+                for(int i = stackIterator; i != 0; i--){
+                    printf("i = %d\n",i);
+                    push(loadedMachine, decAllStore[i-1]);
+                }
                 break;
 
             //DEFAULT
