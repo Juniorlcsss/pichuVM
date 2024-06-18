@@ -1,6 +1,10 @@
 #ifndef PICHU_H
 #define PICHU_H
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
 
 #define MAX_STACK_SIZE 1024
 
@@ -148,6 +152,7 @@ void IndexDuplicate(Machine *machine, int index);
 void printStack(Machine *machine);
 void writeProgramToFile(Machine *machine, char *filename);
 Machine *readFromFile(Machine *machine, char *filename);
+void runPichu(Machine *machine);
 int main();
 
 
