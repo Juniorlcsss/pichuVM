@@ -6,12 +6,16 @@
 #include <string.h>
 #include <assert.h>
 
+#include "pichuLexer.h"
+
 #define MAX_STACK_SIZE 1024
 
 
 typedef enum{
     //https://en.wikipedia.org/wiki/List_of_Java_bytecode_instructions
     //https://en.wikipedia.org/wiki/X86_instruction_listings
+
+    INST_NOP = 0,           //No operation
 
     //Push/Pop
     INST_PUSH,          //push onto stack  
@@ -37,7 +41,6 @@ typedef enum{
     INST_READ,          //Prints value top of stack, doesn't pop it off the stack
     INST_STOP,          //Ignores any further instructions
     INST_CLEAR,         //Removes all prior instructions from stack
-    INST_NOP,           //No operation
     INST_FLIP,          //Inverts the stack
     INST_INDEX_SWAP,    //Swaps operands around depending on the position of the swap (e.g. swap(0) would swap the top of the stack to the bottom of the stack)
     INST_INDEX_DUP,     //Swaps operands like swap, but the duplicate stays where it initially was
@@ -71,6 +74,7 @@ typedef enum{
     INST_GOTO,          //Goes to the nearest selected value
     INST_GOTO_Z,        //If top of stack == 0, go to operand 
     INST_GOTO_NZ,       //If top of stack != 0, go to operand
+    INST_GOTO_NULL,     //Goes to the nearest NULL value //!Unfinished
     INST_GOTO_C,        //If top of stack = given condition, go to operand
     INST_GOTO_NC,       //If top of stack != given condition, go to operand
     INST_CONDITION,     //Input the condition to be used for goto
@@ -121,6 +125,7 @@ typedef struct{
 #define M_INST_COMPNE_NULL() {.operator = INST_COMPNE_NULL}
 #define M_INST_GOTO_Z(x) {.operator = INST_GOTO_Z, .operand = x}
 #define M_INST_GOTO_NZ(x) {.operator = INST_GOTO_NZ, .operand = x}
+#define M_INST_GOTO_NULL() {.operator = M_INST_GOTO_NULL}
 #define M_CONST_M1() {.operator = INST_CONST_M1}
 #define M_CONST_0() {.operator = INST_CONST_0}
 #define M_CONST_1() {.operator = INST_CONST_1}

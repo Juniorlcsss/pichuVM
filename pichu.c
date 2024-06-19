@@ -1,3 +1,8 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+
 #include "pichu.h"
 
 //running the program
@@ -103,6 +108,11 @@ void runPichu(Machine *machine){
     //run program & instructions--------------------------------------------------------
     for(size_t i=0; i < machine->programSize; i++) {
         switch((machine->instructions)[i].operator){
+            //NO OPERATION
+            case INST_NOP:
+                continue;
+                break;
+
             //PUSH
             case INST_PUSH:
                 push(machine, machine->instructions[i].operand);
@@ -232,11 +242,7 @@ void runPichu(Machine *machine){
                     push(machine, 0);
                 }
                 break; 
-            
-            //NO OPERATION
-            case INST_NOP:
-                //null
-                break;
+        
 
             //POP2
             case INST_POP2:
@@ -464,6 +470,11 @@ void runPichu(Machine *machine){
                     //PUSH POPPED VALUE BACK IN
                     push(machine, gotoStore);
                 }
+                break;
+
+            //GOES TO NULL
+            case INST_GOTO_NULL:
+                //unfinished
                 break;
 
             //REPLACE WITH
@@ -730,20 +741,19 @@ void runPichu(Machine *machine){
     //END-OF-SWITCH-AND-FOR-LOOP--------------------------------------------------------
 }
 
+
 int main(){
-    /*
-    int first, second; //first and second operands, used for division and subtraction
-    int gotoStore;     //Used for GOTO_Z and GOTO_NZ
-    int stackStore[MAX_STACK_SIZE]; //used to store previous values within the stack to restore during GOTO operation failures
-    */
+    lexer();
 
     Machine *loadedMachine = malloc(sizeof(Machine) * MAX_STACK_SIZE);
     loadedMachine->instructions = program;
     writeProgramToFile(loadedMachine, "program.bin");
     loadedMachine = readFromFile(loadedMachine, "program.bin");
 
+    //Goes into running the instructions
     runPichu(loadedMachine);
 
+    //Prints the stack
     printStack(loadedMachine);
     return 0;
 }
